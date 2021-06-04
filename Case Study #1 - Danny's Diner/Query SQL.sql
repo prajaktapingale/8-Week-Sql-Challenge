@@ -230,3 +230,77 @@ GROUP BY s.customer_id;
 | B           | 940    |
 
 ---
+
+-- Bonus Question 1: Join All The Things
+
+SELECT 
+    s.customer_id, 
+    s.order_date, 
+    m.product_name, 
+    m.price,
+    CASE WHEN s.order_date < mb.join_date OR mb.join_date IS NULL THEN 'N' ELSE 'Y' END AS member
+FROM dannys_diner.sales s
+LEFT JOIN dannys_diner.menu m
+ON s.product_id = m.product_id
+LEFT JOIN dannys_diner.members mb
+ON s.customer_id = mb.customer_id
+ORDER BY s.customer_id, s.order_date, m.price DESC;
+
+| customer_id | order_date               | product_name | price | member |
+| ----------- | ------------------------ | ------------ | ----- | ------ |
+| A           | 2021-01-01T00:00:00.000Z | curry        | 15    | N      |
+| A           | 2021-01-01T00:00:00.000Z | sushi        | 10    | N      |
+| A           | 2021-01-07T00:00:00.000Z | curry        | 15    | Y      |
+| A           | 2021-01-10T00:00:00.000Z | ramen        | 12    | Y      |
+| A           | 2021-01-11T00:00:00.000Z | ramen        | 12    | Y      |
+| A           | 2021-01-11T00:00:00.000Z | ramen        | 12    | Y      |
+| B           | 2021-01-01T00:00:00.000Z | curry        | 15    | N      |
+| B           | 2021-01-02T00:00:00.000Z | curry        | 15    | N      |
+| B           | 2021-01-04T00:00:00.000Z | sushi        | 10    | N      |
+| B           | 2021-01-11T00:00:00.000Z | sushi        | 10    | Y      |
+| B           | 2021-01-16T00:00:00.000Z | ramen        | 12    | Y      |
+| B           | 2021-02-01T00:00:00.000Z | ramen        | 12    | Y      |
+| C           | 2021-01-01T00:00:00.000Z | ramen        | 12    | N      |
+| C           | 2021-01-01T00:00:00.000Z | ramen        | 12    | N      |
+| C           | 2021-01-07T00:00:00.000Z | ramen        | 12    | N      |
+
+---
+
+-- Bonus Question 2: Rank All The Things
+
+SELECT 
+    *,
+    CASE WHEN member = 'N' THEN NULL ELSE RANK() OVER (PARTITION BY customer_id, member ORDER BY order_date) END AS ranking
+FROM
+(SELECT 
+     s.customer_id, 
+     s.order_date, 
+     m.product_name, 
+     m.price,
+     CASE WHEN s.order_date < mb.join_date OR mb.join_date IS NULL THEN 'N' ELSE 'Y' END AS member
+FROM dannys_diner.sales s
+LEFT JOIN dannys_diner.menu m
+ON s.product_id = m.product_id
+LEFT JOIN dannys_diner.members mb
+ON s.customer_id = mb.customer_id
+ORDER BY s.customer_id, s.order_date, m.price desc) t1;
+
+| customer_id | order_date               | product_name | price | member | ranking |
+| ----------- | ------------------------ | ------------ | ----- | ------ | ------- |
+| A           | 2021-01-01T00:00:00.000Z | curry        | 15    | N      | null    |
+| A           | 2021-01-01T00:00:00.000Z | sushi        | 10    | N      | null    |
+| A           | 2021-01-07T00:00:00.000Z | curry        | 15    | Y      | 1       |
+| A           | 2021-01-10T00:00:00.000Z | ramen        | 12    | Y      | 2       |
+| A           | 2021-01-11T00:00:00.000Z | ramen        | 12    | Y      | 3       |
+| A           | 2021-01-11T00:00:00.000Z | ramen        | 12    | Y      | 3       |
+| B           | 2021-01-01T00:00:00.000Z | curry        | 15    | N      | null    |
+| B           | 2021-01-02T00:00:00.000Z | curry        | 15    | N      | null    |
+| B           | 2021-01-04T00:00:00.000Z | sushi        | 10    | N      | null    |
+| B           | 2021-01-11T00:00:00.000Z | sushi        | 10    | Y      | 1       |
+| B           | 2021-01-16T00:00:00.000Z | ramen        | 12    | Y      | 2       |
+| B           | 2021-02-01T00:00:00.000Z | ramen        | 12    | Y      | 3       |
+| C           | 2021-01-01T00:00:00.000Z | ramen        | 12    | N      | null    |
+| C           | 2021-01-01T00:00:00.000Z | ramen        | 12    | N      | null    |
+| C           | 2021-01-07T00:00:00.000Z | ramen        | 12    | N      | null    |
+
+---
