@@ -30,8 +30,8 @@ INSERT INTO customer_orders
 VALUES
   ('1', '101', '1', '', '', '2020-01-01 18:05:02'),
   ('2', '101', '1', '', '', '2020-01-01 19:00:52'),
-  ('3', '102', '1', '', '', '2020-01-02 12:51:23'),
-  ('3', '102', '2', '', NULL, '2020-01-02 12:51:23'),
+  ('3', '102', '1', '', '', '2020-01-02 23:51:23'),
+  ('3', '102', '2', '', NULL, '2020-01-02 23:51:23'),
   ('4', '103', '1', '4', '', '2020-01-04 13:23:46'),
   ('4', '103', '1', '4', '', '2020-01-04 13:23:46'),
   ('4', '103', '2', '4', '', '2020-01-04 13:23:46'),
@@ -59,7 +59,7 @@ INSERT INTO runner_orders
 VALUES
   ('1', '1', '2020-01-01 18:15:34', '20km', '32 minutes', ''),
   ('2', '1', '2020-01-01 19:10:54', '20km', '27 minutes', ''),
-  ('3', '1', '2020-01-02 00:12:37', '13.4km', '20 mins', NULL),
+  ('3', '1', '2020-01-03 00:12:37', '13.4km', '20 mins', NULL),
   ('4', '2', '2020-01-04 13:53:03', '23.4', '40', NULL),
   ('5', '3', '2020-01-08 21:10:57', '10', '15', NULL),
   ('6', '3', 'null', 'null', 'null', 'Restaurant Cancellation'),
@@ -113,3 +113,34 @@ VALUES
   (10, 'Salami'),
   (11, 'Tomatoes'),
   (12, 'Tomato Sauce');
+  
+DROP TABLE IF EXISTS updated_customer_orders;
+CREATE TEMP TABLE updated_customer_orders AS (
+  SELECT
+    order_id,
+    customer_id,
+    pizza_id,
+    CASE 
+      WHEN exclusions IS NULL 
+        OR exclusions LIKE 'null' THEN ''
+      ELSE exclusions 
+    END AS exclusions,
+    CASE 
+      WHEN extras IS NULL
+        OR extras LIKE 'null' THEN ''
+      ELSE extras 
+    END AS extras,
+    order_time
+  FROM pizza_runner.customer_orders
+);
+
+DROP TABLE IF EXISTS updated_runner_orders;
+CREATE TEMP TABLE updated_runner_orders AS (
+  SELECT
+    order_id,
+    runner_id,
+    CASE WHEN pickup_time LIKE 'null' THEN null ELSE pickup_time END::timestamp AS pickup_time,
+    NULLIF(regexp_replace(distance, '[^0-9.]','','g'), '')::numeric AS distance,
+    NULLIF(regexp_replace(duration, '[^0-9.]','','g'), '')::numeric AS duration,
+    CASE WHEN cancellation IN ('null', 'NaN', '') THEN null ELSE cancellation END AS cancellation
+  FROM pizza_runner.runner_orders);
